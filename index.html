@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Data Report Procurement</title>
+<style>
+:root{
+  --abb-red:#FF000F;
+  --ink:#1F1F1F;
+  --body:#464646;
+  --mute:#8A8A8A;
+  --line:#DBDBDB;
+  --hair:#EDEDED;
+  --shell:#F5F5F5;
+  --card:#FFFFFF;
+  --go:#0C7A3E;
+  --wait:#C77700;
+  --stop:#FF000F;
+  --idle:#CFCFCF;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--shell);color:var(--ink);
+  font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;
+}
+
+/* ================= password gate ================= */
+.gate{
+  position:fixed;inset:0;background:var(--shell);z-index:50;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.gate .box{
+  background:var(--card);border:1px solid var(--line);
+  border-top:4px solid var(--abb-red);width:100%;max-width:360px;padding:34px 32px 30px;
+}
+.gate .lg{margin-bottom:22px}
+.gate h2{margin:0 0 4px;font-size:18px;font-weight:700}
+.gate p{margin:0 0 20px;font-size:13px;color:var(--mute)}
+.gate label{
+  display:block;font-size:11px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--mute);margin-bottom:7px;
+}
+.gate input{
+  width:100%;padding:11px 12px;border:1px solid var(--line);
+  font-family:inherit;font-size:14px;color:var(--ink);
+}
+.gate input:focus{outline:2px solid var(--abb-red);outline-offset:-1px;border-color:var(--abb-red)}
+.gate button{
+  margin-top:16px;width:100%;padding:11px;background:var(--abb-red);color:#fff;
+  border:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+}
+.gate button:hover{background:#D6000C}
+.gate .err{margin-top:12px;font-size:12.5px;color:var(--abb-red);min-height:16px}
+.app{display:none}
+body.unlocked .gate{display:none}
+body.unlocked .app{display:flex}
+
+/* ================= layout ================= */
+.app{min-height:100vh}
+.side{width:210px;flex-shrink:0;background:var(--card);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.brand{padding:22px 20px 20px;border-bottom:1px solid var(--hair)}
+.brand .unit{margin-top:10px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);line-height:1.4}
+
+.nav{padding:14px 0;flex:1}
+.nav button{
+  display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;
+  border-left:3px solid transparent;padding:12px 18px 12px 17px;
+  font-family:inherit;font-size:13.5px;color:var(--body);cursor:pointer;text-align:left;line-height:1.3;
+}
+.nav button:hover{background:var(--shell)}
+.nav button.on{border-left-color:var(--abb-red);color:var(--ink);font-weight:700;background:var(--shell)}
+.nav button:focus-visible{outline:2px solid var(--abb-red);outline-offset:-2px}
+.nav .ico{width:18px;height:18px;flex-shrink:0;color:var(--mute)}
+.nav button.on .ico{color:var(--abb-red)}
+.side .foot{padding:16px 20px 20px;border-top:1px solid var(--hair);font-size:10.5px;color:var(--mute);line-height:1.6}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:20px 32px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.topbar h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.topbar .as-at{font-size:12px;color:var(--mute);margin-left:auto}
+.content{padding:26px 32px 56px;max-width:1320px}
+.pane{display:none}
+.pane.on{display:block}
+
+h2.sh{margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--mute)}
+p.note{margin:0 0 16px;font-size:13px;color:var(--mute);max-width:78ch}
+.block{margin-bottom:34px}
+.card{background:var(--card);border:1px solid var(--line);padding:20px 22px}
+
+.rule-banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--abb-red);padding:18px 22px}
+.rule-banner p{margin:0;font-size:14.5px;color:var(--body);line-height:1.55}
+.rule-banner strong{color:var(--ink)}
+.rule-banner .amend{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--hair);font-size:12px;color:var(--mute)}
+
+.routes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.route{background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column}
+.route .hd{padding:16px 20px 14px;border-bottom:1px solid var(--hair)}
+.route h3{margin:0 0 6px;font-size:16px;font-weight:700}
+.state{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700}
+.state i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.state.live{color:var(--go)} .state.live i{background:var(--go)}
+.state.check{color:var(--wait)} .state.check i{background:var(--wait)}
+.state.dead{color:var(--abb-red)} .state.dead i{background:var(--abb-red)}
+.route .bd{padding:16px 20px 18px;display:flex;flex-direction:column;flex:1}
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+ol.steps li{position:relative;padding-left:26px;margin-bottom:9px;font-size:13px;color:var(--body);line-height:1.45;counter-increment:s}
+ol.steps li::before{content:counter(s);position:absolute;left:0;top:0;width:17px;height:17px;border:1px solid var(--line);font-size:10px;font-weight:700;color:var(--mute);display:flex;align-items:center;justify-content:center}
+.route .flag{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--body);line-height:1.5}
+.route .flag b{color:var(--ink)}
+.route .flag + .flag{border-top:none;padding-top:9px;margin-top:0}
+.dur{background:var(--hair);padding:1px 6px;font-size:11.5px;white-space:nowrap}
+
+.split{display:grid;grid-template-columns:1.3fr 1fr;gap:18px}
+.card h3.ph{margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+table.contacts{width:100%;border-collapse:collapse;font-size:13px}
+table.contacts td{padding:9px 0;border-bottom:1px solid var(--hair);vertical-align:top}
+table.contacts tr:last-child td{border-bottom:none}
+table.contacts td:first-child{font-weight:700;width:37%;padding-right:14px}
+table.contacts td:last-child{color:var(--body)}
+.tbd{color:var(--mute);font-weight:400 !important;font-style:italic}
+.card p{margin:0;font-size:13px;color:var(--body);line-height:1.55}
+.card p + p{margin-top:11px}
+.card p strong{color:var(--ink)}
+
+/* ---------- legend + dots (shared) ---------- */
+.legend{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px;font-size:11.5px;color:var(--mute)}
+.legend span{display:flex;align-items:center;gap:7px}
+.chip{width:11px;height:11px;border-radius:50%;display:inline-block;vertical-align:middle;flex-shrink:0}
+.chip.done{background:var(--go)}
+.chip.prog{background:var(--wait)}
+.chip.block{background:var(--stop)}
+.chip.none{background:var(--idle)}
+
+.dot{width:15px;height:15px;border-radius:50%;display:inline-block;vertical-align:middle}
+.dot.done{background:var(--go)}
+.dot.prog{background:var(--wait)}
+.dot.block{background:var(--stop)}
+.dot.none{background:var(--idle)}
+.flag-pill{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;line-height:1.3;white-space:nowrap}
+.flag-pill.risk{color:#fff;background:var(--stop)}
+.flag-pill.credible{color:var(--go);border:1px solid var(--go)}
+.flag-pill.open-disc{color:var(--mute);border:1px solid var(--line)}
+.flag-pill.na{color:var(--mute)}
+
+/* ---------- pipeline table ---------- */
+.grid{background:var(--card);border:1px solid var(--line);overflow-x:auto}
+table.pipe{width:100%;border-collapse:collapse;min-width:1000px}
+table.pipe th{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);text-align:center;padding:14px 6px 12px;border-bottom:2px solid var(--line);vertical-align:bottom;line-height:1.3}
+table.pipe th.vend{text-align:left;padding-left:20px;width:190px}
+table.pipe th.note{text-align:left;padding-left:16px;width:270px}
+table.pipe td{padding:16px 6px;border-bottom:1px solid var(--hair);text-align:center;vertical-align:middle}
+table.pipe tbody tr:last-child td{border-bottom:none}
+table.pipe tbody tr:nth-child(even){background:#FAFAFA}
+table.pipe tr.parked td{opacity:.45}
+table.pipe tr.parked td.note{opacity:.7}
+.parked-tag{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--mute);padding:2px 7px;margin-left:8px;vertical-align:middle;opacity:1}
+td.vend{text-align:left;padding-left:20px;vertical-align:middle}
+td.vend .nm{font-weight:700;font-size:14px;display:block;line-height:1.25}
+td.vend .meta{font-size:11px;color:var(--mute);margin-top:3px;display:block}
+td.cell .cellwrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:15px}
+td.cell .dot{vertical-align:middle}
+td.cell .sub{margin-top:6px;font-size:10.5px;color:var(--mute);line-height:1.3}
+td.note{text-align:left;padding-left:16px;padding-right:20px;font-size:12.5px;color:var(--body);line-height:1.5;vertical-align:middle}
+
+/* ---------- task tables ---------- */
+.tasktbl{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line)}
+.tasktbl th{
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);
+  text-align:left;padding:12px 16px;border-bottom:2px solid var(--line);
+}
+.tasktbl th.st{width:150px}
+.tasktbl th.ow{width:110px}
+.tasktbl td{padding:13px 16px;border-bottom:1px solid var(--hair);font-size:13px;color:var(--body);line-height:1.5;vertical-align:top}
+.tasktbl tbody tr:last-child td{border-bottom:none}
+.tasktbl tbody tr:nth-child(even){background:#FAFAFA}
+.tasktbl td.stat{white-space:nowrap}
+.tasktbl td.stat .dot{margin-right:8px}
+.stat-lbl{font-size:12px;font-weight:700}
+.stat-lbl.done{color:var(--go)}
+.stat-lbl.prog{color:var(--wait)}
+.stat-lbl.open{color:var(--mute)}
+.owner{
+  display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:#fff;background:var(--mute);padding:3px 9px;
+}
+.owner.a{background:var(--abb-red)}
+.owner.abb{background:#6B3FA0}
+.tbl-cap{margin:0 0 12px;font-size:15px;font-weight:700;color:var(--ink)}
+.tbl-cap .sm{font-size:12px;font-weight:400;color:var(--mute);margin-left:8px}
+
+/* ---------- credibility narrative ---------- */
+.risk-banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--abb-red);padding:18px 22px;margin-bottom:26px}
+.risk-banner .rk{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#fff;background:var(--abb-red);padding:3px 9px;margin-bottom:10px}
+.risk-banner p{margin:0;font-size:14px;color:var(--body);line-height:1.55}
+.risk-banner p strong{color:var(--ink)}
+.narr{background:var(--card);border:1px solid var(--line);padding:4px 24px 8px;margin-bottom:18px}
+.narr h4{font-size:13px;font-weight:700;color:var(--ink);margin:20px 0 8px;padding-bottom:7px;border-bottom:1px solid var(--hair)}
+.narr p{font-size:13px;color:var(--body);line-height:1.6;margin:0 0 10px}
+.narr ul{margin:0 0 12px;padding-left:20px}
+.narr li{font-size:13px;color:var(--body);line-height:1.55;margin-bottom:6px}
+.narr p strong,.narr li strong{color:var(--ink)}
+.verdict{background:#F5F5F5;border-left:3px solid var(--mute);padding:10px 14px;font-size:12.5px;color:var(--body);margin:0 0 12px}
+.verdict b{color:var(--ink)}
+.narr a{color:var(--abb-red);text-decoration:none;border-bottom:1px solid rgba(255,0,15,.3)}
+.narr a:hover{border-bottom-color:var(--abb-red)}
+.srclinks{margin:0 0 12px;font-size:12.5px;color:var(--mute)}
+.srclinks a{margin-right:14px}
+
+@media (max-width:1080px){ .routes{grid-template-columns:1fr} .split{grid-template-columns:1fr} }
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .side{width:100%;border-right:none;border-bottom:1px solid var(--line)}
+  .nav{display:flex;padding:0;overflow-x:auto}
+  .nav button{border-left:none;border-bottom:3px solid transparent;padding:14px 16px;white-space:nowrap}
+  .nav button.on{border-left:none;border-bottom-color:var(--abb-red)}
+  .side .foot{display:none}
+  .content{padding:20px 18px 44px}
+  .topbar{padding:16px 18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= PASSWORD GATE ================= -->
+<div class="gate" id="gate">
+  <div class="box">
+    <svg class="lg" width="88" height="24" viewBox="0 0 288 78" role="img" aria-label="ABB">
+      <g fill="#FF000F">
+        <path d="M0 78 L30 0 L58 0 L88 78 L62 78 L56 60 L32 60 L26 78 Z M38 42 L50 42 L44 22 Z"/>
+        <path d="M98 0 L152 0 C170 0 180 9 180 22 C180 30 176 35 168 38 C178 41 183 47 183 57 C183 70 172 78 153 78 L98 78 Z M122 18 L122 32 L146 32 C152 32 156 29 156 25 C156 21 152 18 146 18 Z M122 46 L122 60 L148 60 C155 60 159 57 159 53 C159 49 155 46 148 46 Z"/>
+        <path d="M195 0 L249 0 C267 0 277 9 277 22 C277 30 273 35 265 38 C275 41 280 47 280 57 C280 70 269 78 250 78 L195 78 Z M219 18 L219 32 L243 32 C249 32 253 29 253 25 C253 21 249 18 243 18 Z M219 46 L219 60 L245 60 C252 60 256 57 256 53 C256 49 252 46 245 46 Z"/>
+      </g>
+    </svg>
+    <h2>Procurement overview</h2>
+    <p>Data Collection Project &middot; Phase 2</p>
+    <label for="pw">Password</label>
+    <input type="password" id="pw" autocomplete="off" autofocus>
+    <button id="go">Open</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <svg width="96" height="26" viewBox="0 0 288 78" role="img" aria-label="ABB">
+        <g fill="#FF000F">
+          <path d="M0 78 L30 0 L58 0 L88 78 L62 78 L56 60 L32 60 L26 78 Z M38 42 L50 42 L44 22 Z"/>
+          <path d="M98 0 L152 0 C170 0 180 9 180 22 C180 30 176 35 168 38 C178 41 183 47 183 57 C183 70 172 78 153 78 L98 78 Z M122 18 L122 32 L146 32 C152 32 156 29 156 25 C156 21 152 18 146 18 Z M122 46 L122 60 L148 60 C155 60 159 57 159 53 C159 49 155 46 148 46 Z"/>
+          <path d="M195 0 L249 0 C267 0 277 9 277 22 C277 30 273 35 265 38 C275 41 280 47 280 57 C280 70 269 78 250 78 L195 78 Z M219 18 L219 32 L243 32 C249 32 253 29 253 25 C253 21 249 18 243 18 Z M219 46 L219 60 L245 60 C252 60 256 57 256 53 C256 49 252 46 245 46 Z"/>
+        </g>
+      </svg>
+      <div class="unit">Data Collection Project<br>Phase 2</div>
+    </div>
+
+    <nav class="nav">
+      <button class="on" data-pane="process" aria-current="page">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="4" width="7" height="6"/><rect x="14" y="14" width="7" height="6"/><path d="M10 7h5a2 2 0 0 1 2 2v5"/>
+        </svg>
+        Process overview
+      </button>
+      <button data-pane="pipeline">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h13M3 18h8"/></svg>
+        Vendor pipeline
+      </button>
+      <button data-pane="tasks">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Open tasks
+      </button>
+      <button data-pane="credibility">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        Vendor credibility
+      </button>
+    </nav>
+
+    <div class="foot">Market data report<br>procurement<br>Status 5 Aug 2026</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h1 id="ttl">Process overview</h1>
+      <span class="as-at">Next weekly &middot; 12 Aug 2026</span>
+    </div>
+
+    <div class="content">
+
+      <!-- ---------- PANE 1: PROCESS ---------- -->
+      <section class="pane on" id="process">
+        <div class="block">
+          <h2 class="sh">Standing rule</h2>
+          <p class="note">Applies to every vendor and every purchase value.</p>
+          <div class="rule-banner">
+            <p><strong>All vendor communication runs through Alicia</strong> — quotes, NDAs, scope questions and GTCs. The team does not approach vendors directly, regardless of purchase value.
+            <span class="amend">Amended 22 July 2026 — supersedes the earlier $25k threshold, under which the team could transact directly with registered vendors below that value.</span></p>
+          </div>
+        </div>
+
+        <div class="block">
+          <h2 class="sh">Three routes to a report</h2>
+          <p class="note">Which route applies depends on whether the vendor is already onboarded in the ABB system.</p>
+          <div class="routes">
+            <article class="route">
+              <div class="hd"><h3>Direct onboarding</h3><span class="state live"><i></i>Standard route &middot; in use</span></div>
+              <div class="bd">
+                <ol class="steps">
+                  <li>Vendor returns four signed documents: GTCs, vendor template, bank template, party ID PDF</li>
+                  <li>Alicia hands the complete set to Agnieszka Partyka</li>
+                  <li>Onboarding runs in the system <span class="dur">~3 weeks</span></li>
+                  <li>Purchase requisition and PO can be raised</li>
+                </ol>
+                <p class="flag"><b>Watch:</b> the three weeks only start once all four documents are in. A vendor who does not return them cannot be onboarded at all.</p>
+              </div>
+            </article>
+            <article class="route">
+              <div class="hd"><h3>Reseller</h3><span class="state live"><i></i>Fast route &middot; available now</span></div>
+              <div class="bd">
+                <ol class="steps">
+                  <li>Buy through a supplier already onboarded at ABB</li>
+                  <li>That supplier purchases the report from the publisher and resells it</li>
+                  <li>No new onboarding — avoids the three-week wait</li>
+                </ol>
+                <p class="flag"><b>Candidates:</b> SoftwareOne and Candex — both onboarded resellers that buy directly from the publisher for a ~3% commission. Candex is already set up for the Swiss reporting unit. Research and Markets — a reports reseller (650+ suppliers, specific coverage not listed), invited to onboard; process takes 3–6 weeks.</p>
+                <p class="flag"><b>Candex how-to:</b> business provides the Candex link to Agnieszka Baginska, who follows the instructions. One PO per supplier; overall Candex use is capped at ~€30k/year and no more than 3 POs/year.</p>
+                <p class="flag"><b>Use now:</b> for an urgent PR on GVR or GMI, the requisition can be redirected to Candex rather than waiting for the vendor's own onboarding to complete.</p>
+              </div>
+            </article>
+            <article class="route">
+              <div class="hd"><h3>P-card</h3><span class="state check"><i></i>Fast route &middot; process shared</span></div>
+              <div class="bd">
+                <ol class="steps"><li>Pay by company card — no onboarding and no purchase order</li></ol>
+                <p class="flag"><b>Status:</b> the P-card process has been shared with Francesca's team. Sits outside the standard onboarding route and may not apply to every region.</p>
+                <p class="flag"><b>Contact:</b> Michelle Joos (Corporate Procurement Manager) to identify the point of contact for the Swiss reporting unit.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="block">
+          <div class="split">
+            <div class="card">
+              <h3 class="ph">Who does what</h3>
+              <table class="contacts">
+                <tr><td>Alicia Bear</td><td>Category specialist — first point of contact for all vendor communication, quotes, NDAs and GTCs</td></tr>
+                <tr><td>Agnieszka Partyka</td><td>Operational buyer — runs vendor onboarding and supports the purchase requisition</td></tr>
+                <tr><td>Agnieszka Baginska</td><td>Controller — places the purchase requisition on our side (OOO until 9 Aug)</td></tr>
+                <tr><td>Michelle Joos</td><td>Corporate Procurement Manager — contact for the P-card process and Swiss reporting unit</td></tr>
+              </table>
+            </div>
+            <div class="card">
+              <h3 class="ph">Standing constraint</h3>
+              <p>Access for Eraneos consultants requires the <strong>enterprise licence</strong> — the higher-priced tier. A quote for an individual or single-user licence does not cover the project team.</p>
+              <p>Confirmed for Grand View Research and Global Market Insights. Not yet confirmed for Frost &amp; Sullivan.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANE 2: PIPELINE ---------- -->
+      <section class="pane" id="pipeline">
+        <div class="block">
+          <h2 class="sh">Vendor pipeline</h2>
+          <p class="note">Stages are ticked independently — progress is not always sequential, so an empty box mid-row shows exactly where a vendor is stuck.</p>
+          <div class="legend">
+            <span><i class="chip done"></i> Complete</span>
+            <span><i class="chip prog"></i> In progress</span>
+            <span><i class="chip block"></i> Blocked or incorrect</span>
+            <span><i class="chip none"></i> Not started</span>
+            <span><span class="flag-pill risk" style="font-size:9px;padding:1px 6px">Risk</span> credibility flag raised</span>
+            <span><span class="flag-pill open-disc" style="font-size:9px;padding:1px 6px">Open</span> perspectives differ</span>
+            <span><span class="flag-pill credible" style="font-size:9px;padding:1px 6px">Credible</span> outside flagged cluster</span>
+          </div>
+          <div class="grid">
+            <table class="pipe">
+              <thead>
+                <tr>
+                  <th class="vend">Vendor</th>
+                  <th>Credibility<br>flag</th>
+                  <th>Vendor<br>onboarded</th><th>Scope /<br>SOW sent</th><th>Excerpt<br>received</th>
+                  <th>Timeline<br>clear</th><th>Quote<br>received</th><th>PR<br>raised</th><th>Report<br>delivered</th>
+                  <th class="note">Status &amp; notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="vend"><span class="nm">Grand View Research</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot prog"></i><div class="sub">tax-ID issue</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">8–12 wd</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all groups</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot prog"></i><div class="sub">PR in progress</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Bundled, customised report closely aligned with scope; bundle quote received and forwarded; PR requested by Francesca (in progress). Onboarding blocked — tax ID not displaying in the ABB system though the requester can see it; Ariba team support needed. Strong scope match and longest forecast horizon, but higher credibility risk; declined to share ABB reference contacts. Not on the CHAMS supplier list — Alicia recommends the Candex route for the PR.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Global Market Insights</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot block"></i><div class="sub">not initiated</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">8–10 wd</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all groups</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Bundled, customised report; bundle quote received and forwarded. PR not yet initiated — held pending the credibility discussion, and Agnieszka Baginska (PR/PO) is now on leave. Onboarding not started; vendor reported Agnieszka Partyka had not reached out, reminder sent. Provided an ABB reference contact. Higher credibility risk. Not on the CHAMS supplier list — Alicia recommends the Candex route for the PR.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Frost &amp; Sullivan</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill credible">Credible</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">in CHAMS</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">breakers only</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot block"></i><div class="sub">subscription extension</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Back in scope as a priority vendor — for breakers only. Regarded as highly credible with no issues found. Limitations: forecast horizon only to 2030 (vs. 2035 elsewhere) and competitive landscape at regional level only (top-three competitors), needing a customised report and a subscription extension — quote still required. Regional shares can be applied to derive country trends (Phase 1 precedent). Available in CHAMS and fully ready for purchase (usual PR process).</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Beroe Holdings Inc.</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill credible">Credible</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">in CHAMS</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">breakers &amp; switchgear</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Reached out for status; Alicia to reply Thursday. Excerpt received for breakers &amp; switchgear only (not switches); phased delivery, separate files per component. Only a rough quote so far — team to reconfirm the two covered portfolio parts and request the final quote. Michelle Joos holds existing Beroe licenses. Available in CHAMS via the usual PR process.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">ResearchWire Knowledge Solutions</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill credible">Credible</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">in CHAMS</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all groups</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Available in CHAMS via the usual PR process — no additional onboarding needed. Quote and excerpt received covering all three product groups. Firm is ISO 27001-certified and vouched for; note that the reviewed template showed internal-consistency and hygiene issues (shared in the comparison matrix).</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Fortune Business Insights</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot prog"></i><div class="sub">onboarding initiated</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Available in the system for another region; onboarding now initiated. Excerpt delivered — to be reviewed, and Alicia notified if we decide to order. Within the flagged cluster, though Aditi has prior positive experience (at a previous firm); provided an ABB reference contact. Not on the CHAMS supplier list — would require the reseller route.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Markets &amp; Markets</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill open-disc">Open</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">in CHAMS</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Available in CHAMS via the usual PR process. New quote received and excerpt received. PR still to follow. Perspectives differ — the most complete methodology of the set, but named in earlier discussion; kept open for discussion.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Market Research Future</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot prog"></i><div class="sub">partial</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Broad geography but includes countries outside the SoW; no country-level share; redacted sample limits review. Within the flagged vendor cluster. Not on the CHAMS supplier list — would require the reseller route.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">IMARC Group</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">All data labelled "Sample / Illustrative — NOT actual research output"; short forecast horizon (2030); no country-level detail; weak for SoW purposes. Not on the CHAMS supplier list — would require the reseller route.</td>
+                </tr>
+                <tr>
+                  <td class="vend"><span class="nm">Mordor Intelligence</span></td>
+                  <td class="cell"><div class="cellwrap"><span class="flag-pill risk">Risk</span></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i><div class="sub">all 3 SOWs</div></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot done"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="cell"><div class="cellwrap"><i class="dot none"></i></div></td>
+                  <td class="note">Best country granularity of all reports; useful complement; shorter horizon (2031). Not on the CHAMS supplier list — would require the reseller route.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- PANE 3: OPEN TASKS ---------- -->
+      <section class="pane" id="tasks">
+        <div class="legend">
+          <span><i class="chip done"></i> Done</span>
+          <span><i class="chip prog"></i> In progress</span>
+          <span><i class="chip none"></i> Open</span>
+        </div>
+
+        <!-- TABLE 1 -->
+        <div class="block">
+          <p class="tbl-cap">Tasks 15 July</p>
+          <table class="tasktbl">
+            <thead>
+              <tr><th class="ow">Owner</th><th class="st">Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="owner a">Alicia</span></td>
+                <td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td>
+                <td>Contact GMI and GVR re: access, quotations, timelines — updated quotations now received for all product groups.</td>
+              </tr>
+              <tr>
+                <td><span class="owner a">Alicia</span></td>
+                <td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td>
+                <td>Send supplier list Excel to the team — shared; few suppliers available for CHAMS.</td>
+              </tr>
+              <tr>
+                <td><span class="owner a">Alicia</span></td>
+                <td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td>
+                <td>Search SCMIS / Power BI for suppliers registered in other ABB entities — completed; full vendor list shared, no further follow-up required.</td>
+              </tr>
+              <tr>
+                <td><span class="owner">Eraneos</span></td>
+                <td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td>
+                <td>Eraneos screening of the supplier list — list received and screened.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TABLE 2 -->
+        <div class="block">
+          <p class="tbl-cap">Tasks 22 July</p>
+          <table class="tasktbl">
+            <thead>
+              <tr><th class="ow">Owner</th><th class="st">Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Request corrected enterprise-licence quotation from GMI, covering all three reports, and confirm the customisation timeline. <b>Shared with Business.</b></td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Follow up with GVR on the enterprise-licence quotation, coordinated with Francesca to keep a single communication channel. <b>Shared with Business.</b></td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">In progress</span></td><td>Progress GVR onboarding with Agnieszka Partyka (initiated 22 July) — ongoing, ~3 weeks.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Confirm feasibility of the reseller route — candidates now SoftwareOne (~3% surcharge) and CANDEX (under review); Cesmay French-org only.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Frost &amp; Sullivan — ABB decided not to proceed; earlier open questions no longer relevant.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Send the supplier list / PO-ready vendor list to the full team. <b>Shared with Business.</b></td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Confirm whether the SCMIS / Power BI search is still relevant — completed, attachment shared. <b>Shared with Business.</b></td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>P-card route — process shared with Francesca's team; Michelle Joos named as contact for the Swiss reporting unit.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Set up a call with Alessandro and Aditi to work through the open questions in the Excel file.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Share the GMI, GVR and Frost &amp; Sullivan report extracts with the team for joint scope and quality review.</td></tr>
+              <tr><td><span class="owner">Eraneos</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Provide prioritised external report list for LV Switchgear to the team and Alicia.</td></tr>
+              <tr><td><span class="owner">Eraneos</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">In progress</span></td><td>Provide prioritised external report list for Switches to the team and Alicia (pending prioritisation of product group).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TABLE 3 -->
+        <div class="block">
+          <p class="tbl-cap">Tasks 29 July</p>
+          <table class="tasktbl">
+            <thead>
+              <tr><th class="ow">Owner</th><th class="st">Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="owner">Eraneos</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Review the shared report extracts and provide feedback on scope and quality fit.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Upload all report extracts already reviewed (including those forwarded by Alicia) to the shared folder for joint review.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">Ongoing</span></td><td>Continue populating the vendor comparison matrix with the extended analysis, and reopen the vendor analysis beyond GMI / GVR / Fortune Business — weighting credibility higher than scope fit.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Ask Alicia for a list of ABB business contacts who have already used GMI, GVR (and Fortune Business) to gather their view on the reports' accuracy. <b>Update 4 Aug:</b> Alicia has asked GMI and FBI for their last ABB contacts; GVR has not provided any contact.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">Open</span></td><td>Reach out to personal consultancy contacts for a second opinion on the credibility of GVR / GMI (ASAP).</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">Ongoing</span></td><td>Post any interim findings in the group chat as they come up.</td></tr>
+              <tr><td><span class="owner">Alma</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Run one deeper review of the research methodology of the three vendors to confirm no red flags (incl. secondary / macroeconomic data sources) — before 4 Aug.</td></tr>
+              <tr><td><span class="owner">Alma</span></td><td class="stat"><i class="dot done"></i><span class="stat-lbl done">Done</span></td><td>Send a short summary e-mail documenting the identified risk and agreed actions, so Francesca is up to date on her return.</td></tr>
+              <tr><td><span class="owner">Alma / Aditi</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">Ongoing</span></td><td>Quick credibility check on each additional vendor, then report back on which merit a detailed look.</td></tr>
+              <tr><td><span class="owner abb">Alessandro</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">After purchase</span></td><td>Post-purchase: cross-check report country figures against consolidated national association data where available (e.g. Italy).</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TABLE 4 -->
+        <div class="block">
+          <p class="tbl-cap">Tasks 5 August</p>
+          <table class="tasktbl">
+            <thead>
+              <tr><th class="ow">Owner</th><th class="st">Status</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="owner abb">Francesca</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">In progress</span></td><td>GVR PR requested before vacation. Decide whether to redirect the GVR / GMI PR to Candex (3% commission) to avoid waiting on vendor onboarding.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">Open</span></td><td>Request Ariba team support for the GVR onboarding tax-ID display issue.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">In progress</span></td><td>Chase Agnieszka Partyka on GMI onboarding (vendor reported no outreach yet; reminder sent).</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">Open</span></td><td>Reply to Beroe on Thursday; reconfirm scope as breakers &amp; switchgear and request the final quote.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot prog"></i><span class="stat-lbl prog">In progress</span></td><td>Extend the vendor comparison matrix with the credibility dimension and the reopened vendor set; clarify Beroe's methodology option (with / without interviews) and timeline.</td></tr>
+              <tr><td><span class="owner abb">Aditi</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">Open</span></td><td>Review the ABB reference contacts (GMI, FBI) with Francesca and Alessandro tomorrow; pick one or two to approach on their experience with the reports.</td></tr>
+              <tr><td><span class="owner a">Alicia</span></td><td class="stat"><i class="dot none"></i><span class="stat-lbl open">Open</span></td><td>Screen the Eraneos recommended vendor list for new vendors to pursue outside of the current list.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ---------- PANE 4: VENDOR CREDIBILITY ---------- -->
+      <section class="pane" id="credibility">
+        <div class="block">
+          <h2 class="sh">Risk — vendor credibility</h2>
+          <p class="note">Identified 29 July; position updated 5 August.</p>
+
+          <div class="risk-banner">
+            <span class="rk">Open risk</span>
+            <p>Two Reddit threads flagged several scouted vendors as unreliable — alleging advertised reports don't always exist and estimates are assembled from quick web searches rather than rigorous research. <strong>Why it matters:</strong> LSOs and future dashboard users may run the same search and surface the same threads, undermining confidence in the published figures. Credibility was agreed as the paramount criterion, given the intent for wider adoption.</p>
+          </div>
+
+          <div class="narr">
+            <h4>Current position (5 Aug)</h4>
+            <p>Credibility is treated as an explicit selection dimension, mapped alongside scope fit, forecast horizon and geographic granularity — not pass/fail. The trade-off is accepted transparently: <strong>GVR / GMI</strong> give the strongest scope match, granularity and longest horizon (2035) but carry higher credibility risk; <strong>Frost &amp; Sullivan, Beroe, ResearchWire</strong> are more credible and sit outside the flagged cluster. A <strong>mixed-vendor approach</strong> — pairing a high-scope-fit but riskier vendor with a more credible one — is under consideration. On methodology: where primary research would significantly extend delivery of a custom report, relying on <strong>secondary sources</strong> is considered sufficient for Phase 2; primary-source customisation is noted as a scale-up recommendation for later.</p>
+
+
+            <h4>How reliable is the flag itself?</h4>
+            <ul>
+              <li>The Reddit threads carry <strong>no evidential weight</strong> — unverified crowd sentiment, not a finding. Phase 1 vendors (e.g. Straits Research) appear on the same list, and part of the criticism simply rests on vendors being India-based, which is not a basis for a quality judgement. Recorded for completeness only; it moved no assessment materially.</li>
+              <li>A structured methodology and document cross-check was run instead (Alma), assessing each vendor on disclosure, primary-research evidence, internal/arithmetic consistency, document QC, and firm standing. This — not the Reddit sentiment — is the basis for the flags.</li>
+              <li>AI usage is not itself a red flag — what matters is where in the process it is applied.</li>
+            </ul>
+            <div class="verdict"><b>One hard external finding:</b> Mordor Intelligence holds a 51% stake in Global Market Insights (since Sept 2023), undisclosed by either vendor — and GMI's proposal names Mordor as an inferior competitor. This verifiable, undisclosed conflict directly affects how both bids should be read.</div>
+
+            <h4>Validation options</h4>
+            <ul>
+              <li><strong>ABB business references:</strong> ask the colleagues who originally requested a report whether the figures matched expectations. Alicia asked GVR / GMI / FBI for prior ABB contacts — GMI and FBI provided them, GVR declined. Tracked as a separate "internal-user feedback" dimension.</li>
+              <li><strong>National association benchmarks:</strong> compare country figures against consolidated national data (e.g. Italy, already used in Stratos). Some products / countries only, post-purchase.</li>
+              <li><strong>Timing constraint:</strong> pre-purchase validation is only possible for off-the-shelf reports. For customised reports, country estimates appear only after purchase — so validation is largely post-purchase, which is the risk to manage up front.</li>
+            </ul>
+          </div>
+
+          <p class="srclinks"><b style="color:var(--ink)">Sources:</b>
+            <a href="https://www.reddit.com/r/consulting/comments/1gfzokw/grand_view_research_report/" target="_blank" rel="noopener">Reddit — r/consulting (GVR)</a>
+            <a href="https://www.reddit.com/r/Marketresearch/comments/oay9m5/are_market_reports_from_pages_like/" target="_blank" rel="noopener">Reddit — r/Marketresearch</a>
+          </p>
+          <p class="note">Actions tracked in the Open tasks tab under Tasks 29 July and Tasks 5 August.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  /* ---- password gate ---- */
+  var PW = "DCP022026";
+  var gate = document.getElementById('gate');
+  var pw = document.getElementById('pw');
+  var err = document.getElementById('err');
+  function tryOpen(){
+    if(pw.value === PW){
+      document.body.classList.add('unlocked');
+    }else{
+      err.textContent = "Incorrect password.";
+      pw.value = ""; pw.focus();
+    }
+  }
+  document.getElementById('go').addEventListener('click', tryOpen);
+  pw.addEventListener('keydown', function(e){ if(e.key === 'Enter') tryOpen(); });
+
+  /* ---- tab nav ---- */
+  var btns  = document.querySelectorAll('.nav button');
+  var panes = document.querySelectorAll('.pane');
+  var ttl   = document.getElementById('ttl');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); x.removeAttribute('aria-current'); });
+      panes.forEach(function(p){ p.classList.remove('on'); });
+      b.classList.add('on');
+      b.setAttribute('aria-current','page');
+      document.getElementById(b.dataset.pane).classList.add('on');
+      ttl.textContent = b.textContent.trim();
+      window.scrollTo(0,0);
+    });
+  });
+})();
+</script>
+</body>
+</html>
